@@ -13,7 +13,7 @@
          <action
 			   label="%menu_label_import"
                icon="icons/sample.gif"
-               class="DD_TOOL.TemplateAction"
+               class="DD_TOOL.ImportAction"
                tooltip="%menu_tooltip"
                menubarPath="tool/Translator/"
                id="Translator">
@@ -21,7 +21,7 @@
          <action
 			   label="%menu_label_export"
                icon="icons/sample.gif"
-               class="DD_TOOL.TemplateAction"
+               class="DD_TOOL.ExportAction"
                tooltip="%menu_tooltip"
                menubarPath="tool/Translator/"
                id="Translator">
