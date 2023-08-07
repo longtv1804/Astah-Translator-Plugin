@@ -1,29 +1,25 @@
 package DD_TOOL;
 
-import javax.swing.JOptionPane;
+import java.awt.FileDialog;
+import java.awt.Frame;
 
-import com.change_vision.jude.api.inf.AstahAPI;
-import com.change_vision.jude.api.inf.exception.ProjectNotFoundException;
-import com.change_vision.jude.api.inf.project.ProjectAccessor;
 import com.change_vision.jude.api.inf.ui.IPluginActionDelegate;
 import com.change_vision.jude.api.inf.ui.IWindow;
-import com.change_vision.jude.api.inf.ui.IPluginActionDelegate.UnExpectedException;
 
 public class ImportAction implements IPluginActionDelegate {
 
 	public Object run(IWindow window) throws UnExpectedException {
-	    try {
-	        AstahAPI api = AstahAPI.getAstahAPI();
-	        ProjectAccessor projectAccessor = api.getProjectAccessor();
-	        projectAccessor.getProject();
-	        JOptionPane.showMessageDialog(window.getParent(),"Hello Import");
-	    } catch (ProjectNotFoundException e) {
-	        String message = "Project is not opened.Please open the project or create new project.";
-			JOptionPane.showMessageDialog(window.getParent(), message, "Warning", JOptionPane.WARNING_MESSAGE); 
-	    } catch (Exception e) {
-	    	JOptionPane.showMessageDialog(window.getParent(), "Unexpected error has occurred.", "Alert", JOptionPane.ERROR_MESSAGE); 
-	        throw new UnExpectedException();
-	    }
-	    return null;
+	    AstahGateway gw = new AstahGateway(window);
+	    
+	    // select file
+	    FileDialog fd = new FileDialog(new Frame("select file"), "Choose translated input file", FileDialog.LOAD);
+	    fd.setFile("*.txt");
+	    fd.setVisible(true);
+	    String filePath = fd.getDirectory() + fd.getFile();
+	    
+	    // running import file's data to astah project
+	    ImportController controller = new ImportController(gw, filePath);
+	    controller.run();
+		return null;
 	}
 }
