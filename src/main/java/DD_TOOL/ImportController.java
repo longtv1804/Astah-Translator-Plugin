@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import com.change_vision.jude.api.inf.model.INamedElement;
+
 public class ImportController {
 	private AstahGateway mGateway = null;
 	private FileInputStream mReader = null;
@@ -31,6 +33,6 @@ public class ImportController {
 	}
 	
 	public void run () {
-		mGateway.showMessage("import runing: " + mFilePath);
+		
 	}
 }
