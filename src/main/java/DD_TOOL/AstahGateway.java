@@ -42,11 +42,12 @@ public class AstahGateway {
 		}
 	}
 	
-	public void save () {
+	public void save () throws Exception {
 		try {
 			mProjectAccessor.save();
 		} catch (Exception e) {
-			Log.e(TAG, "save() " + e.getMessage());
+			Log.e(TAG, "Exception: save() " + e.getMessage());
+			throw new Exception("ERROR: can not save the projecte ??");
 		}
 	}
 	
@@ -72,7 +73,7 @@ public class AstahGateway {
 		try {
 			return mProjectAccessor.findElements(IPackage.class);
 		} catch (Exception e) {
-			Log.e(TAG, "getPackages() " + e.getMessage());
+			Log.e(TAG, "Exception: getPackages() " + e.getMessage());
 			return null;
 		}
 	}
@@ -83,7 +84,7 @@ public class AstahGateway {
 		    try {
 				res = mProjectAccessor.findElements(IClass.class);
 			} catch (ProjectNotFoundException e) {
-				Log.e(TAG, "getClasses() " + e.getMessage());
+				Log.e(TAG, "Exception: getClasses() " + e.getMessage());
 			}
 		}
 		return res;
@@ -95,7 +96,19 @@ public class AstahGateway {
 			try {
 				dgms = mProjectAccessor.findElements(ISequenceDiagram.class);
 			} catch (ProjectNotFoundException e) {
-				Log.e(TAG, "getSequenceDiagrams() " + e.getMessage());
+				Log.e(TAG, "Exception: getSequenceDiagrams() " + e.getMessage());
+			}
+		}
+		return dgms;
+	}
+	
+	public INamedElement[] getStateMachineDiagrams() {
+		INamedElement[] dgms = null;
+		if (mProjectAccessor != null) {
+			try {
+				dgms = mProjectAccessor.findElements(IStateMachineDiagram.class);
+			} catch (ProjectNotFoundException e) {
+				Log.e(TAG, "Exception: getStateMachineDiagrams() " + e.getMessage());
 			}
 		}
 		return dgms;
@@ -108,7 +121,7 @@ public class AstahGateway {
 	    try {
 			return diagram.getPresentations();
 		} catch (InvalidUsingException e) {
-			Log.e(TAG, "getPresentation() " + e.getMessage());
+			Log.e(TAG, "Exception: getPresentation() " + e.getMessage());
 			return null;
 		}
 	}
@@ -145,11 +158,11 @@ public class AstahGateway {
 		return null;
 	}
 	
-	public boolean addTag (INamedElement ele, String tag) {
-		if (mProjectAccessor == null || ele == null || tag == null) {
+	public boolean addTag (INamedElement ele, String tagValue) {
+		if (mProjectAccessor == null || ele == null || tagValue == null) {
 			return false;
 		}
-		
+
 		ITaggedValue eleTag = getTag(ele);
 		if (eleTag != null) {
 			deleteTag(eleTag);
@@ -160,13 +173,13 @@ public class AstahGateway {
 			transaction.beginTransaction();
 			
 			BasicModelEditor editor = mProjectAccessor.getModelEditorFactory().getBasicModelEditor();
-			editor.createTaggedValue(ele, CommonUtils.DDTAG, tag);
+			editor.createTaggedValue(ele, CommonUtils.DDTAG, tagValue);
 			//ele.setAlias2(tag);
 			
 			transaction.endTransaction();
 			return true;
 		} catch (Exception e) {
-			Log.e(TAG, "addTag() exeption: " + ele.getName() + " " + tag + " " + e.getMessage());
+			Log.e(TAG, "Exception: addTag() exeption: " + ele.getName() + " " + tagValue + " " + e.getMessage());
 			if (transaction.isInTransaction() == true) {
 				transaction.endTransaction();
 			}
@@ -182,7 +195,7 @@ public class AstahGateway {
 			editor.delete(tag);
 			transaction.endTransaction();
 		} catch (Exception e) {
-			Log.e(TAG, "deleteTag() exeption: " + e.getMessage() + " tag=" + tag);
+			Log.e(TAG, "Exception: deleteTag() exeption: " + e.getMessage() + " tag=" + tag);
 			if (transaction.isInTransaction() == true) {
 				transaction.endTransaction();
 			}
@@ -198,8 +211,88 @@ public class AstahGateway {
 				}
 			});
 		} catch (ProjectNotFoundException e) {
-			Log.e(TAG, "getElementsWithTag() " + e.getMessage());
+			Log.e(TAG, "Exception: getElementsWithTag() " + e.getMessage());
 			return null;
+		}
+	}
+	
+	public void importTranslatedData (INamedElement element, String str) {
+		if (element == null || str == null || str.isEmpty()) {
+			return;
+		}
+		
+		ITransactionManager transaction = mProjectAccessor.getTransactionManager();
+		try {
+			transaction.beginTransaction();
+			element.setName(str);
+			transaction.endTransaction();
+		} catch (Exception e) {
+			Log.e(TAG, "Exception: importTranslatedData() element: [" + element.getName() + "] - [" + str + "] exeption: " + e.getMessage());
+			if (transaction.isInTransaction() == true) {
+				transaction.endTransaction();
+			}
+		}
+	}
+
+	public void importTranslatedData (IInteractionOperand element, String str) {
+		if (element == null || str == null || str.isEmpty()) {
+			return;
+		}
+		ITransactionManager transaction = mProjectAccessor.getTransactionManager();
+		try {
+			transaction.beginTransaction();
+			element.setGuard(str);
+			transaction.endTransaction();
+		} catch (Exception e) {
+			Log.e(TAG, "Exception: importTranslatedData() IInteractionOperand: " + e.getMessage());
+			if (transaction.isInTransaction() == true) {
+				transaction.endTransaction();
+			}
+		}
+	}
+	
+	public void importTranslatedData (IComment element, String str) {
+		if (element == null || str == null || str.isEmpty()) {
+			return;
+		}
+		ITransactionManager transaction = mProjectAccessor.getTransactionManager();
+		try {
+			transaction.beginTransaction();
+			element.setName(str);
+			transaction.endTransaction();
+		} catch (Exception e) {
+			Log.e(TAG, "Exception: importTranslatedData() IInteractionOperand: " + e.getMessage());
+			if (transaction.isInTransaction() == true) {
+				transaction.endTransaction();
+			}
+		}
+	}
+	
+	public void importTranslatedData (ITransition element, String strigger, String guard, String act) {
+		if (element == null || 
+			(CommonUtils.isEmpty(strigger) && CommonUtils.isEmpty(guard) && CommonUtils.isEmpty(act))) {
+			return;
+		}
+		Log.e(TAG, "importTranslatedData() ITransition: " + strigger);
+		ITransactionManager transaction = mProjectAccessor.getTransactionManager();
+		try {
+			transaction.beginTransaction();
+			if (CommonUtils.isEmpty(strigger) == false) {
+				element.setEvent(strigger);
+			}
+			if (CommonUtils.isEmpty(guard) == false) {
+				element.setGuard(guard);
+			}
+			if (CommonUtils.isEmpty(act) == false) {
+				element.setAction(act);
+			}
+			element.setAction(act);
+			transaction.endTransaction();
+		} catch (Exception e) {
+			Log.e(TAG, "Exception: importTranslatedData() ITransition: " + e.getMessage());
+			if (transaction.isInTransaction() == true) {
+				transaction.endTransaction();
+			}
 		}
 	}
 }

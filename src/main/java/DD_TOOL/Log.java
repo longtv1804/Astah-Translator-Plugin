@@ -2,26 +2,31 @@ package DD_TOOL;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.Calendar;
 
 public class Log {
-	private static Log mIns = null;
-	
-	private static String mFilePath = "C:\\Users\\PL_FR_DELL\\Desktop\\abc\\log.txt";
+	private static String mFilePath = null;
 	
 	private Log () {
-		
+
 	}
 
 	private static void printLog (String fileName, String msg) {
-		if (mIns == null) {
-			mIns = new Log();
-		}
 		if (mFilePath != null) {
 			try {
-				String logmsg = fileName + ": " + msg + "\n";
-				Files.write(Paths.get(mFilePath), logmsg.getBytes(), StandardOpenOption.APPEND);
+				final long curTime = System.currentTimeMillis();
+				final Calendar cal = Calendar.getInstance();
+				cal.setTimeInMillis(curTime);
+				final String timeString = new SimpleDateFormat("ddMMYYYY HH:mm:ss:SSS").format(cal.getTime());
+				
+				String logmsg = timeString + " " + fileName + ": " + msg + "\n";
+				Files.write(Paths.get(mFilePath), logmsg.getBytes("UTF-16"), StandardOpenOption.APPEND);
 			} catch (IOException e) {
 				// ignore
 			}
@@ -33,5 +38,15 @@ public class Log {
 	}
 	public static void e (String fileName, String msg) {
 		printLog(fileName, msg);
+	}
+
+	public static void setPath(String path)  {
+		mFilePath = path;
+		Path l_path = Paths.get(mFilePath);
+		try {
+			Files.createFile(l_path);
+		} catch (IOException e) {
+			// ignore
+		}
 	}
 }
