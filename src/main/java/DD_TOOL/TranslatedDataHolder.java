@@ -76,7 +76,7 @@ public class TranslatedDataHolder {
 		
 		//InputStreamReader sc = new InputStreamReader(new FileInputStream(mFilePath), "UTF-8");
 
-		Scanner sc = new Scanner(new FileInputStream(mFilePath), "UTF-16");
+		Scanner sc = new Scanner(new FileInputStream(mFilePath), "UTF-8");
 		Pattern rg = Pattern.compile(PATTERN_IMPORT_DATA);
 		
 		String id = null;

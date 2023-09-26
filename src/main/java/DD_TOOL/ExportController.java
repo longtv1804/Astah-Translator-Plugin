@@ -1,9 +1,9 @@
 package DD_TOOL;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.Random;
 
 import com.change_vision.jude.api.inf.model.*;
@@ -17,12 +17,15 @@ public class ExportController {
 	private String mDirPath = null;
 	private int mTagId = 0;
 	
+	HashMap<Integer, HashMap<String, String>> mDataMap = null;
+	
 	public ExportController (AstahGateway gw, String dirPath) {
 		mGateway = gw;
 		mDirPath = dirPath;
 		Random rd = new Random();
 		mTagId = rd.nextInt(1000000);
 		
+		mDataMap = new HashMap<>();
 		initWriter();
 	}
 	
@@ -31,7 +34,7 @@ public class ExportController {
 			try {
 				String fileName = "[DDTOOL][Exported_Data]-" + mGateway.getProjectName() + ".txt";
 				//mWr = new FileWriter(new java.io.File(mDirPath + "\\" + fileName));
-				mWr = new OutputStreamWriter(new java.io.FileOutputStream(mDirPath + "\\" + fileName), Charset.forName("UTF-16"));
+				mWr = new OutputStreamWriter(new java.io.FileOutputStream(mDirPath + "\\" + fileName), Charset.forName("UTF-8"));
 			} catch (IOException e) {
 				mGateway.showMessage("ERROR: can not create FileWriter: " + e.getMessage());
 			}
@@ -68,17 +71,54 @@ public class ExportController {
 		return "" + mTagId;
 	}
 	
+	String getExistTag (int type, String data) {
+		String res = null;
+		HashMap<String, String> lMap = mDataMap.get(type);
+		if (lMap != null) {
+			res = lMap.get(data);
+		}
+		return res;
+	}
+	
+	void addNewDatatoCache (int type, String data, String ddTag) {
+		HashMap<String, String> lMap = mDataMap.get(type);
+		if (lMap == null) {
+			lMap = new HashMap<>();
+			mDataMap.put(type, lMap);
+		}
+		lMap.put(data, ddTag);
+	}
+	
+	private String addTag (INamedElement item, String data, int type) {
+		boolean res = false;
+		String ddTag = getExistTag(type, data);
+		
+		if (CommonUtils.isEmpty(ddTag) == true) {
+			res = true;
+			ddTag = genTag();
+			addNewDatatoCache(type, data, ddTag);
+		} else {
+			Log.d(TAG, "ddTag exit: " + ddTag);
+		}
+		
+		res = res & mGateway.addTag(item, ddTag);
+		
+		if (res == true) {
+			return ddTag;
+		}
+		return null;
+	}
+	
 	private void exportItem (INamedElement item, int type) {
 		String name = item.getName();
 		if (name == null || name.isEmpty()) {
 			return;
 		}
-		// add tag
-		String ddTag = genTag();
-		boolean res = mGateway.addTag(item, ddTag);
 		
-		// export
-		if (res == true) {
+		String ddTag = addTag(item, name, type);
+		
+		// export data
+		if (CommonUtils.isEmpty(ddTag) == false) {
 			write(ddTag + " " + type + " 0");
 			write(name);
 			Log.d(TAG, "exportItem: [" + name + "] type: " + type);
@@ -108,12 +148,10 @@ public class ExportController {
 			return;
 		}
 		
-		// add tag
-		String ddTag = genTag();
-		boolean res = mGateway.addTag(iCmt, ddTag);
+		String ddTag = addTag(iCmt, content, CommonUtils.ITEM_TYPE_COMMENT);
 		
 		// export
-		if (res == true) {
+		if (CommonUtils.isEmpty(ddTag) == false) {
 			String[] strArr = content.split("\n");
 			write(ddTag + " " + CommonUtils.ITEM_TYPE_COMMENT + " " + strArr.length);
 			for (int i = 0; i < strArr.length; i++) {
