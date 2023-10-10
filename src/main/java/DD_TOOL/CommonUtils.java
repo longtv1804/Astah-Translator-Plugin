@@ -2,6 +2,9 @@ package DD_TOOL;
 
 public class CommonUtils {
 	public static String DDTAG = "DDTAG";
+	public static String LAST_DDTAG_ID = "LAST_DDTAG_ID";
+	public static int DD_TAG_MAX_ID_RND = 1000000;
+	public static int DD_TAG_MIN_ID_DIAGRAMEXPORTID = 5000000;
 	
 	// constants
 	public static final int ITEM_TYPE_PACKAGE 				= 1;

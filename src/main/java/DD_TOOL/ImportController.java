@@ -18,6 +18,50 @@ public class ImportController {
 	private TranslatedDataHolder mHolder = null;
 	private String mInputPath = null;
 	
+	protected int mPackageCount 				= 0;
+	protected int mClassCount 					= 0;
+	protected int mClassFunctionCount 			= 0;
+	protected int mSeqDiagramCount 				= 0;
+	protected int mSeqLifeLineCount				= 0;
+	protected int mSeqMessageCount 				= 0;
+	protected int mSeqCommentCount 				= 0;
+	protected int mSeqCombineFragmentCount		= 0;
+	protected int mStateDiagramCount			= 0;
+	protected int mSdStateCount				    = 0;
+	protected int mSdTransitionCount			= 0;
+	
+	protected void count (int type) {
+		switch (type) {
+		case CommonUtils.ITEM_TYPE_PACKAGE: 			mPackageCount++; 			break;
+		case CommonUtils.ITEM_TYPE_CLASS: 				mClassCount++; 				break;
+		case CommonUtils.ITEM_TYPE_CLASS_FUNC: 			mClassFunctionCount++; 		break;
+		case CommonUtils.ITEM_TYPE_SEQ: 				mSeqDiagramCount++; 		break;
+		case CommonUtils.ITEM_TYPE_LIFELINE: 			mSeqLifeLineCount++; 		break;
+		case CommonUtils.ITEM_TYPE_LIFELINEFUNC: 		mSeqMessageCount++; 		break;
+		case CommonUtils.ITEM_TYPE_COMMENT: 			mSeqCommentCount++; 		break;
+		case CommonUtils.ITEM_TYPE_COMBINEFRAG: 		mSeqCombineFragmentCount++; break;
+		case CommonUtils.ITEM_TYPE_SEQ_STATE_MACHINE: 	mStateDiagramCount++; 		break;
+		case CommonUtils.ITEM_TYPE_SMC_STATE: 			mSdStateCount++; 			break;
+		case CommonUtils.ITEM_TYPE_SMC_TRANSITION: 	    mSdTransitionCount++; 		break;
+		}
+	}
+
+	protected String summary () {
+		String ret = "";
+		ret += String.format("%-30s %10d\n", "Packages", 				mPackageCount            );
+		ret += String.format("%-30s %10d\n", "Classes", 				mClassCount              );
+		ret += String.format("%-30s %10d\n", "    Class's Funcs", 		mClassFunctionCount      );
+		ret += String.format("%-30s %10d\n", "Sequence Diagram", 		mSeqDiagramCount         );
+		ret += String.format("%-30s %10d\n", "    LifeLine", 			mSeqLifeLineCount        );
+		ret += String.format("%-30s %10d\n", "    LifeLine's Message", 	mSeqMessageCount         );
+		ret += String.format("%-30s %10d\n", "    Comment", 			mSeqCommentCount         );
+		ret += String.format("%-30s %10d\n", "    Combine Fragment", 	mSeqCombineFragmentCount );
+		ret += String.format("%-30s %10d\n", "StateMachine Diagram", 	mStateDiagramCount       );
+		ret += String.format("%-30s %10d\n", "    State", 				mSdStateCount            );
+		ret += String.format("%-30s %10d\n", "    Transition", 			mSdTransitionCount       );
+		return ret;
+	}
+	
 	public ImportController (AstahGateway gw, String input) {
 		mGateway = gw;
 		mInputPath = input;
@@ -30,23 +74,30 @@ public class ImportController {
 	
 	private void importTranSlatedData (INamedElement element, int type) throws Exception {
 		String tagValue = checkAndGetTag(element, type);
-
+		
 		if (tagValue != null) {	
 			String data = mHolder.getData(tagValue);
-			mGateway.importTranslatedData(element, data);
+			if (CommonUtils.isEmpty(data) == false) {
+				mGateway.importTranslatedData(element, data);
+				count(type);
+			} else {
+				Log.e(TAG, "importTranSlatedData() ERROR: Key is not included in input [" + tagValue + "]");
+			}
 		}
 	}
-	private String checkAndGetTag(INamedElement element, int inputType) throws Exception {
+	private String checkAndGetTag(INamedElement element, int inputType) {
 		ITaggedValue iTag = mGateway.getTag(element);
 		if (iTag != null) {
 			String tagValue = iTag.getValue();
 			if (tagValue == null || tagValue.isEmpty()) {
-				throw new Exception("can not find out DDTAG in import data. please check!");
+				Log.d(TAG, "ERROR: ddtag null or empty: [" + element.getName());
+				return null;
 			}
+			
 			int holderType = mHolder.getType(tagValue);
 			if (holderType != inputType) {
-				Log.e(TAG, "type mismatch DDTag:[" + tagValue + "] type: " + inputType + " holderType:" + holderType);
-				throw new Exception("DDTAG's type missmatch, please check!");
+				Log.d(TAG, "type mismatch DDTag:[" + tagValue + "] type: " + inputType + " holderType:" + holderType);
+				return null;
 			}
 			return tagValue;
 		}
@@ -74,6 +125,9 @@ public class ImportController {
 		return res;
 	}
 	
+	// ===========================================================================================
+	//										import function
+	// ===========================================================================================
 	private void importData (IPackage iPk) throws Exception {
 		importTranSlatedData(iPk, CommonUtils.ITEM_TYPE_PACKAGE);
 	}
@@ -91,20 +145,11 @@ public class ImportController {
 		}
 	}
 	private void importData (IComment iCmt) throws Exception {
-		ITaggedValue iTag = mGateway.getTag(iCmt);
-		if (iTag != null) {
-			String tagValue = iTag.getValue();
-			if (tagValue == null || tagValue.isEmpty()) {
-				throw new Exception("importData IComment: can not find out DDTAG in import data.\nmaybe you passed incorrect input, please check!");
-			}
-			int holderType = mHolder.getType(tagValue);
-			if (holderType != CommonUtils.ITEM_TYPE_COMMENT) {
-				Log.e(TAG, "type mismatch DDTag:[" + tagValue + "] type: " + CommonUtils.ITEM_TYPE_COMMENT + " holderType:" + holderType);
-				throw new Exception("DDTAG's type missmatch, please check!");
-			}
-			
+		String tagValue = checkAndGetTag(iCmt, CommonUtils.ITEM_TYPE_COMMENT);
+		if (tagValue != null) {
 			String data = mHolder.getData(tagValue);
 			mGateway.importTranslatedData(iCmt, data);
+			count(CommonUtils.ITEM_TYPE_COMMENT);
 		}
 	}
 	private void importData (ICombinedFragment iCbF) throws Exception {
@@ -178,6 +223,7 @@ public class ImportController {
 			String guard 	= mHolder.getGuardForState(tagValue);
 			String act 		= mHolder.getActionForState(tagValue);
 			mGateway.importTranslatedData(item, trigger, guard, act);
+			count(CommonUtils.ITEM_TYPE_SMC_TRANSITION);
 		}
 	}
 	private void importData (IStateMachineDiagram dg) throws Exception {
@@ -200,6 +246,9 @@ public class ImportController {
 		}
 	}
 	
+	// ===========================================================================================
+	//										run function
+	// ===========================================================================================
 	public void run () throws Exception {
 		Log.d(TAG, "+++++++++++ Start Import ++++++++++++++");
 		if (mGateway == null || mInputPath == null) {
@@ -217,8 +266,12 @@ public class ImportController {
 		if (mHolder != null) {
 			// import package
 			INamedElement[] packages = mGateway.getPackages();
+			INamedElement proj = mGateway.getProject();
 			if (packages != null) {
 				for (int i = 0; i < packages.length; i++) {
+					if (packages[i] == proj) {
+						continue; // ignore project instance
+					}
 					Log.d(TAG, "package: " + packages[i].getName());
 					importData((IPackage)packages[i]);
 				}
@@ -255,7 +308,9 @@ public class ImportController {
 			}
 			
 			mGateway.save();
-			mGateway.showMessage("IMPORT done!");
+			String summaryMsg = summary();
+			mGateway.showMessage("IMPORT... done!\n" + summaryMsg);
+			Log.d(TAG, "import DONE\n" + summaryMsg);
 		} else {
 			mGateway.showMessage("ERROR: when reading your data. please check again");
 		}

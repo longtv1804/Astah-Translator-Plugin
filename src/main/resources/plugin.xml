@@ -1,31 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin>
-   <extension point="com.change_vision.astah.ui.actionSets">
-      <actionSet
+	<extension point="com.change_vision.astah.ui.actionSets">
+		<actionSet
             label="%action_set_label"
             visible="true"
             id="DD_TOOL.Translator.actionSet">
-         <menu
-               id="Translator"
-               label="%menu_group"
-               path="tool/Translator">
-         </menu>
-         <action
+			<menu
+			   id="Translator"
+			   label="%menu_group"
+			   path="tool/Translator">
+			</menu>
+			<action
 			   label="%menu_label_import"
-               icon="icons/sample.gif"
-               class="DD_TOOL.ImportAction"
-               tooltip="%menu_tooltip"
-               menubarPath="tool/Translator/"
-               id="Translator">
-         </action>
-         <action
+			   icon="icons/sample.gif"
+			   class="DD_TOOL.ImportAction"
+			   tooltip="%menu_tooltip"
+			   menubarPath="tool/Translator/"
+			   id="Translator">
+			</action>
+			<action
 			   label="%menu_label_export"
-               icon="icons/sample.gif"
-               class="DD_TOOL.ExportAction"
-               tooltip="%menu_tooltip"
-               menubarPath="tool/Translator/"
-               id="Translator">
-         </action>
-     </actionSet>
-   </extension>
+			   icon="icons/sample.gif"
+			   class="DD_TOOL.ExportAction"
+			   tooltip="%menu_tooltip"
+			   menubarPath="tool/Translator/"
+			   id="Translator">
+			</action>
+			<action
+			   label="%menu_label_export_current_sequence"
+			   icon="icons/sample.gif"
+			   class="DD_TOOL.ExportCurrentSequenceAction"
+			   tooltip="%menu_tooltip"
+			   menubarPath="tool/Translator/"
+			   id="Translator">
+			</action>
+			<action
+			   label="%menu_label_clean"
+			   icon="icons/sample.gif"
+			   class="DD_TOOL.CleanTranslatedDataAction"
+			   tooltip="%menu_tooltip"
+			   menubarPath="tool/Translator/"
+			   id="Translator">
+			</action>
+		</actionSet>
+	</extension>
 </plugin>

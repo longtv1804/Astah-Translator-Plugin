@@ -11,11 +11,23 @@ import com.change_vision.jude.api.inf.presentation.IPresentation;
 
 public class ExportController {
 	private static String TAG = "ExportController";
-	private AstahGateway mGateway = null;
+	protected AstahGateway mGateway = null;
 	//private FileWriter mWr = null;
-	private OutputStreamWriter mWr = null;
-	private String mDirPath = null;
-	private int mTagId = 0;
+	protected OutputStreamWriter mWr = null;
+	protected String mDirPath = null;
+	protected int mTagId = 0;
+	
+	protected int mPackageCount 				= 0;
+	protected int mClassCount 					= 0;
+	protected int mClassFunctionCount 			= 0;
+	protected int mSeqDiagramCount 				= 0;
+	protected int mSeqLifeLineCount				= 0;
+	protected int mSeqMessageCount 				= 0;
+	protected int mSeqCommentCount 				= 0;
+	protected int mSeqCombineFragmentCount		= 0;
+	protected int mStateDiagramCount			= 0;
+	protected int mSdStateCount				    = 0;
+	protected int mSdTransitionCount			= 0;
 	
 	HashMap<Integer, HashMap<String, String>> mDataMap = null;
 	
@@ -23,13 +35,13 @@ public class ExportController {
 		mGateway = gw;
 		mDirPath = dirPath;
 		Random rd = new Random();
-		mTagId = rd.nextInt(1000000);
+		mTagId = rd.nextInt(CommonUtils.DD_TAG_MAX_ID_RND);
 		
 		mDataMap = new HashMap<>();
 		initWriter();
 	}
 	
-	private void initWriter () {
+	protected void initWriter () {
 		if (mDirPath != null) {
 			try {
 				String fileName = "[DDTOOL][Exported_Data]-" + mGateway.getProjectName() + ".txt";
@@ -41,7 +53,7 @@ public class ExportController {
 		}
 	}
 	
-	private void finalizeWriter () {
+	protected void finalizeWriter () {
 		if (mWr != null) {
 			try {
 				mWr.close();
@@ -57,7 +69,7 @@ public class ExportController {
 		mGateway.finalize();
 	}
 	
-	private void write (String line) {
+	protected void write (String line) {
 		try {
 			mWr.write(line);
 			mWr.write("\n");
@@ -66,12 +78,12 @@ public class ExportController {
 		}
 	}
 	
-	private String genTag() {
+	protected String genTag() {
 		mTagId += 1;
 		return "" + mTagId;
 	}
 	
-	String getExistTag (int type, String data) {
+	protected String getExistTag (int type, String data) {
 		String res = null;
 		HashMap<String, String> lMap = mDataMap.get(type);
 		if (lMap != null) {
@@ -89,7 +101,7 @@ public class ExportController {
 		lMap.put(data, ddTag);
 	}
 	
-	private String addTag (INamedElement item, String data, int type) {
+	protected String addTag (INamedElement item, String data, int type) {
 		boolean res = false;
 		String ddTag = getExistTag(type, data);
 		
@@ -109,7 +121,43 @@ public class ExportController {
 		return null;
 	}
 	
-	private void exportItem (INamedElement item, int type) {
+	
+	// ===========================================================================================
+	//										export functions
+	// ===========================================================================================
+	protected void count (int type) {
+		switch (type) {
+		case CommonUtils.ITEM_TYPE_PACKAGE: 			mPackageCount++; 			break;
+		case CommonUtils.ITEM_TYPE_CLASS: 				mClassCount++; 				break;
+		case CommonUtils.ITEM_TYPE_CLASS_FUNC: 			mClassFunctionCount++; 		break;
+		case CommonUtils.ITEM_TYPE_SEQ: 				mSeqDiagramCount++; 		break;
+		case CommonUtils.ITEM_TYPE_LIFELINE: 			mSeqLifeLineCount++; 		break;
+		case CommonUtils.ITEM_TYPE_LIFELINEFUNC: 		mSeqMessageCount++; 		break;
+		case CommonUtils.ITEM_TYPE_COMMENT: 			mSeqCommentCount++; 		break;
+		case CommonUtils.ITEM_TYPE_COMBINEFRAG: 		mSeqCombineFragmentCount++; break;
+		case CommonUtils.ITEM_TYPE_SEQ_STATE_MACHINE: 	mStateDiagramCount++; 		break;
+		case CommonUtils.ITEM_TYPE_SMC_STATE: 			mSdStateCount++; 			break;
+		case CommonUtils.ITEM_TYPE_SMC_TRANSITION: 	    mSdTransitionCount++; 		break;
+		}
+	}
+
+	protected String summary () {
+		String ret = "";
+		ret += String.format("%-30s %10d\n", "Packages", 				mPackageCount            );
+		ret += String.format("%-30s %10d\n", "Classes", 				mClassCount              );
+		ret += String.format("%-30s %10d\n", "    Class's Funcs", 		mClassFunctionCount      );
+		ret += String.format("%-30s %10d\n", "Sequence Diagram", 		mSeqDiagramCount         );
+		ret += String.format("%-30s %10d\n", "    LifeLine", 			mSeqLifeLineCount        );
+		ret += String.format("%-30s %10d\n", "    LifeLine's Message", 	mSeqMessageCount         );
+		ret += String.format("%-30s %10d\n", "    Comment", 			mSeqCommentCount         );
+		ret += String.format("%-30s %10d\n", "    Combine Fragment", 	mSeqCombineFragmentCount );
+		ret += String.format("%-30s %10d\n", "StateMachine Diagram", 	mStateDiagramCount       );
+		ret += String.format("%-30s %10d\n", "    State", 				mSdStateCount            );
+		ret += String.format("%-30s %10d\n", "    Transition", 			mSdTransitionCount       );
+		return ret;
+	}
+	
+	protected void exportItem (INamedElement item, int type) {
 		String name = item.getName();
 		if (name == null || name.isEmpty()) {
 			return;
@@ -122,16 +170,40 @@ public class ExportController {
 			write(ddTag + " " + type + " 0");
 			write(name);
 			Log.d(TAG, "exportItem: [" + name + "] type: " + type);
+			count(type);
 		}
 	}
-
-	private void export (IPackage iPk) {
+	protected boolean isNeededToExport(IElement item) {
+		boolean res = true;
+		
+		if (item instanceof ILifeline) {
+			ILifeline iLfl = (ILifeline) item;
+			IClass baseClass = iLfl.getBase();
+			if (baseClass != null) {
+				res = false;
+				Log.d(TAG, "ignore ILifeline: " + iLfl.getName() + " " + baseClass.getName());
+			}
+			
+		}
+		else if (item instanceof IMessage) {
+			IMessage msg = (IMessage) item;
+			IOperation baseOp = msg.getOperation();
+			if (baseOp != null) {
+				res = false;
+				Log.d(TAG, "ignore IMessage: " + msg.getName() + " hasOP: "+ baseOp.getName());
+			}
+		}
+		
+		return res;
+	}
+	
+	protected void export (IPackage iPk) {
 		exportItem(iPk, CommonUtils.ITEM_TYPE_PACKAGE);
 	}
-	private void export (IOperation iOp) {
+	protected void export (IOperation iOp) {
 		exportItem(iOp, CommonUtils.ITEM_TYPE_CLASS_FUNC);
 	}
-	private void export (IClass iclass) {
+	protected void export (IClass iclass) {
 		exportItem(iclass, CommonUtils.ITEM_TYPE_CLASS);
 			
 		// export class function
@@ -142,7 +214,7 @@ public class ExportController {
 			}
 		}
 	}
-	private void export (IComment iCmt) {
+	protected void export (IComment iCmt) {
 		String content = iCmt.getBody();
 		if (content == null || content.isEmpty()) {
 			return;
@@ -158,9 +230,10 @@ public class ExportController {
 				write(strArr[i]);
 			}
 			Log.d(TAG, "export IComment: [" + content + "] type: " + CommonUtils.ITEM_TYPE_COMMENT);
+			count(CommonUtils.ITEM_TYPE_COMMENT);
 		}
 	}
-	private void export (ICombinedFragment fm) {
+	protected void export (ICombinedFragment fm) {
 		// add tag
 		String ddTag = genTag(); 
 		boolean res = mGateway.addTag(fm, ddTag);
@@ -188,41 +261,19 @@ public class ExportController {
 				}
 			}
 			Log.d(TAG, "export ICombinedFragment: '" + name + "'");
+			count(CommonUtils.ITEM_TYPE_COMBINEFRAG);
 		}
 	}
-	private void export (ILifeline iLfl) {
+	protected void export (ILifeline iLfl) {
 		exportItem(iLfl, CommonUtils.ITEM_TYPE_LIFELINE);
 	}
-	private void export (IMessage iMess) {
+	protected void export (IMessage iMess) {
 		exportItem(iMess, CommonUtils.ITEM_TYPE_LIFELINEFUNC);
 	}
-	private void export (IInteractionUse iItr) {
+	protected void export (IInteractionUse iItr) {
 		exportItem(iItr, CommonUtils.ITEM_TYPE_REFERENCESEQUENCE);
 	}
-	private boolean isNeededToExport(IElement item) {
-		boolean res = true;
-		
-		if (item instanceof ILifeline) {
-			ILifeline iLfl = (ILifeline) item;
-			IClass baseClass = iLfl.getBase();
-			if (baseClass != null) {
-				res = false;
-				Log.d(TAG, "ignore ILifeline: " + iLfl.getName() + " " + baseClass.getName());
-			}
-			
-		}
-		else if (item instanceof IMessage) {
-			IMessage msg = (IMessage) item;
-			IOperation baseOp = msg.getOperation();
-			if (baseOp != null) {
-				res = false;
-				Log.d(TAG, "ignore IMessage: " + msg.getName() + " hasOP: "+ baseOp.getName());
-			}
-		}
-		
-		return res;
-	}
-	private void export (ISequenceDiagram sq) {
+	protected void export (ISequenceDiagram sq) {
 		exportItem(sq, CommonUtils.ITEM_TYPE_SEQ);
 
 		IPresentation[] psts = mGateway.getPresentation(sq);
@@ -253,10 +304,10 @@ public class ExportController {
 			}
 		}
 	}
-	private void export(IState item) {
+	protected void export(IState item) {
 		exportItem(item, CommonUtils.ITEM_TYPE_SMC_STATE);
 	}
-	private void export(ITransition item) {
+	protected void export(ITransition item) {
 		String trigger = item.getEvent();
 		String guard = item.getGuard();
 		String action = item.getAction(); 
@@ -271,7 +322,7 @@ public class ExportController {
 		
 		// export
 		if (res == true) {
-			Log.d(TAG, "export ITransition: [" + trigger + "] guard: [" + guard + " action: [" + action + "]");
+			Log.d(TAG, "export ITransition: [" + trigger + "] guard: [" + guard + "] action: [" + action + "]");
 			
 			if (CommonUtils.isEmpty(trigger)) trigger = CommonUtils.DEFAULT_VALUE_FOR_ITEM;
 			if (CommonUtils.isEmpty(guard)) guard = CommonUtils.DEFAULT_VALUE_FOR_ITEM;
@@ -292,9 +343,10 @@ public class ExportController {
 			for (int i = 0; i < actionArr.length; i++) {
 				write(actionArr[i]);
 			}
+			count(CommonUtils.ITEM_TYPE_SMC_TRANSITION);
 		}
 	}
-	private void export (IStateMachineDiagram dg) {
+	protected void export (IStateMachineDiagram dg) {
 		exportItem(dg, CommonUtils.ITEM_TYPE_SEQ_STATE_MACHINE);
 		
 		IPresentation[] psts = mGateway.getPresentation(dg);
@@ -316,6 +368,9 @@ public class ExportController {
 		}
 	}
 	
+	// ===========================================================================================
+	//										run function
+	// ===========================================================================================
 	public void run () throws Exception {
 		Log.d(TAG, "+++++++++++ Start Export ++++++++++++++");
 		
@@ -360,6 +415,8 @@ public class ExportController {
 		
 		finalizeWriter();
 		mGateway.save();
-		mGateway.showMessage("Export Done.");
+		String summaryMsg = summary();
+		mGateway.showMessage("Export Whole Project.. Done.\n" + summaryMsg);
+		Log.d(TAG, "export DONE\n" + summaryMsg);
 	}
 }

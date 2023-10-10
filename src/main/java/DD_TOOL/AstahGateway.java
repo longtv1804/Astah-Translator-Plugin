@@ -2,6 +2,8 @@ package DD_TOOL;
 
 import javax.swing.JOptionPane;
 
+import org.osgi.service.log.LogEntry;
+
 import com.change_vision.jude.api.inf.AstahAPI;
 import com.change_vision.jude.api.inf.editor.BasicModelEditor;
 import com.change_vision.jude.api.inf.editor.ITransactionManager;
@@ -56,6 +58,73 @@ public class AstahGateway {
 	 * 			get items
 	 * =====================================================================================================
 	 */
+	public INamedElement getProject () {
+		if (mProjectAccessor != null) {
+			try {
+				return mProjectAccessor.getProject();
+			} catch (ProjectNotFoundException e) {
+				// ignore
+			}
+		}
+		return null;
+	}
+	public void setLastTagId (String tagStr) {
+		if (mProjectAccessor != null) {
+			try {
+				IModel proj = mProjectAccessor.getProject();
+				ITaggedValue curTag = getTag(proj);
+				if (curTag != null) {
+					deleteTag(curTag);
+				}
+				addTag(proj, tagStr);
+			} catch (Exception e) {
+				Log.e(TAG, "setLastTagId() Exception: " + e.getMessage());
+			}
+		} else {
+			Log.e(TAG, "setLastTagId() mProjectAccessor is null");
+		}
+	}
+	
+	public int getTagIdStartFromProject () {
+		if (mProjectAccessor != null) {
+			try {
+				IModel proj = mProjectAccessor.getProject();
+				ITaggedValue curTag = getTag(proj);
+				if (curTag != null) {
+					String value = curTag.getValue();
+					Log.d(TAG, "setLastTagId() Project TAG existed " + value);
+					return Integer.parseInt(value);
+				} 
+			} catch (Exception e) {
+				Log.e(TAG, "setLastTagId() Exception: " + e.getMessage());
+			}
+		} else {
+			Log.e(TAG, "getTagIdStartFromProject() mProjectAccessor is null");
+		}
+		return -1;
+	}
+	
+	public IDiagram getOpenedDiagram () {
+		if (mProjectAccessor != null) {
+			try {
+				return mProjectAccessor.getViewManager().getDiagramViewManager().getCurrentDiagram();
+			} catch (InvalidUsingException e) {
+				Log.e(TAG, "getOpenedDiagram() exeption: " + e.getMessage());
+			}
+		}
+		return null;
+	}
+
+	public IDiagram[] getOpenedDiagrams () {
+		if (mProjectAccessor != null) {
+			try {
+				return mProjectAccessor.getViewManager().getDiagramViewManager().getOpenDiagrams();
+			} catch (InvalidUsingException e) {
+				Log.e(TAG, "getOpenedDiagrams() exeption: " + e.getMessage());
+			}
+		}
+		return null;
+	}
 	
 	public String getProjectName () {
 		String res = null;
@@ -144,7 +213,7 @@ public class AstahGateway {
 		return null;
 	}
 	
-	public ITaggedValue getTag (INamedElement ele) {
+	public ITaggedValue getTag (IElement ele) {
 		if (ele != null) {
 			ITaggedValue[] tags = ele.getTaggedValues();
 			if (tags != null) {
@@ -187,7 +256,7 @@ public class AstahGateway {
 		return false;
 	}
 	
-	private void deleteTag (ITaggedValue tag) {
+	public void deleteTag (ITaggedValue tag) {
 		ITransactionManager transaction = mProjectAccessor.getTransactionManager();
 		try {
 			transaction.beginTransaction();
@@ -294,5 +363,21 @@ public class AstahGateway {
 				transaction.endTransaction();
 			}
 		}
+	}
+	
+	public boolean isCurrentDiagramExportedData () {
+		IDiagram dg = getOpenedDiagram();
+		if (dg != null) {
+			String ddTagVal = getTagValue(dg);
+			try {
+				int val = Integer.parseInt(ddTagVal);
+				if (val > CommonUtils.DD_TAG_MIN_ID_DIAGRAMEXPORTID) {
+					return true;
+				}
+			} catch (NumberFormatException e) {
+				// ignore
+			}
+		}
+		return false;
 	}
 }
